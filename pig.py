@@ -1,6 +1,7 @@
 import random
 from pig_logger import logger
 
+TARGET_SCORE = 25
 
 class PigPlayer:
     def __init__(self, **kwargs) -> None:
@@ -8,28 +9,36 @@ class PigPlayer:
         self.__dict__.update(kwargs)
 
     def keep_rolling(self) -> bool:
-        if sum(self.turn_rolls) > 21:
+        if sum(self.turn_rolls) > TARGET_SCORE:
             return False
 
     def roll(self):
+        self.turn_rolls = []
         logger.info(f"{self} is rolling")
 
-        self.turn_rolls = [random.randint(1, 6)]
-        logger.info(f"{self} rolled a {self.turn_rolls[0]}")
+        self.turn_rolls.append(random.randint(1, 6))
+        logger.debug(f"{self} rolled a {self.turn_rolls[0]}")
 
         if self.turn_rolls[0] in self.game.excluded_numbers:
-            logger.info(f"{self} rolled an excluded number")
+            logger.debug(f"{self} rolled an excluded number")
             return 0
         
-        while self.keep_rolling():
-            logger.info(f"{self} is rolling again")
+        while self.keep_rolling() or (self.game.other_player.score >= TARGET_SCORE and self.score + sum(self.turn_rolls) < self.game.other_player.score):
+            logger.debug(f"{self} is rolling again")
+
             self.turn_rolls.append(random.randint(1, 6))
+            logger.debug(f"{self} rolled a {self.turn_rolls[-1]}")
+
             if self.turn_rolls[-1] in self.game.excluded_numbers:
+                logger.info(f"{self} rolled an excluded number ")
                 return 0
+            
+        logger.debug(f"{self} is ending their turn")        
+        logger.info(f"{self} scored {sum(self.turn_rolls)} points")
         return sum(self.turn_rolls)
     
     def __repr__(self):
-        attrs = ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items() if k not in ('score', 'turn_rolls', 'game'))
+        attrs = ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items() if k not in ('game'))
         return f"{self.__class__.__name__}({attrs})"
 
 
